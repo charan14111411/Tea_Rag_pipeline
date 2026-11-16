@@ -4,7 +4,7 @@ from src.ingestion.embedder import get_embeddings
 from src.retrieval.vectorstore_manager import load_vectorstore
 
 
-question = "Why does coffee taste bitter?"
+question = "Why does green tea taste bitter?"
 
 print(f"\nQuestion : {question}")
 
@@ -23,11 +23,11 @@ print(f"Vector Length : {len(query_vector)}")
 print(f"First 10 Numbers : {query_vector[:10]}")
 
 # STEP 3
-print("\nSTEP 3 : Loading FAISS Database")
+print("\nSTEP 3 : Loading Qdrant Vector Store")
 
 vectorstore = load_vectorstore()
 
-print("\nSTEP 4 : Manual FAISS Search")
+print("\nSTEP 4 : Manual Qdrant Search")
 
 results = vectorstore.similarity_search_with_score(
     question,
@@ -42,6 +42,8 @@ for i, (doc, score) in enumerate(results, start=1):
 
     print(f"Similarity Score : {score}")
 
+    print(f"Book : {doc.metadata.get('book', 'Unknown')}")
+
     print(f"Page : {doc.metadata['page']}")
 
     print(doc.page_content[:300])
@@ -53,13 +55,13 @@ for i, (doc, score) in enumerate(results, start=1):
 # from src.ingestion.loader import load_pdf
 # from src.ingestion.chunker import chunk_documents
 
-# question = "Why does coffee taste bitter?"
+# question = "Why does green tea taste bitter?"
 
 # embeddings = get_embeddings()
 
 # question_vector = embeddings.embed_query(question)
 
-# docs = load_pdf("data/Coffee-Bible_6439.pdf")
+# docs = load_pdf("data/tea_books/<your-tea-book>.pdf")
 # chunks = chunk_documents(docs)
 
 # print("Checking first 5 chunks manually\n")

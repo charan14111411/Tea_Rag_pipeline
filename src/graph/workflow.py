@@ -1,20 +1,21 @@
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from src.graph.state import GraphState
-from src.graph.nodes import retrieve_node, grade_documents_node, generate_node
+from src.graph.nodes import understand_node, retrieve_node, extract_node, generate_node
 
 # Initialize the StateGraph with our GraphState
 workflow = StateGraph(GraphState)
 
-# Add nodes to the workflow
+# understand question -> retrieve chunks -> extract relevant facts -> write final answer
+workflow.add_node("understand", understand_node)
 workflow.add_node("retrieve", retrieve_node)
-workflow.add_node("grade_documents", grade_documents_node)
+workflow.add_node("extract", extract_node)
 workflow.add_node("generate", generate_node)
 
-# Set up edges
-workflow.add_edge(START, "retrieve")
-workflow.add_edge("retrieve", "grade_documents")
-workflow.add_edge("grade_documents", "generate")
+workflow.add_edge(START, "understand")
+workflow.add_edge("understand", "retrieve")
+workflow.add_edge("retrieve", "extract")
+workflow.add_edge("extract", "generate")
 workflow.add_edge("generate", END)
 
 # Initialize in-memory checkpointer for conversation memory persistence

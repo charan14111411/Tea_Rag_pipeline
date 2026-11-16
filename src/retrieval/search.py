@@ -1,7 +1,7 @@
 from src.retrieval.retriever import get_retriever
 
 
-question = "Why does coffee taste bitter?"
+question = "Why does green tea taste bitter?"
 
 retriever = get_retriever()
 
@@ -12,6 +12,8 @@ for i, doc in enumerate(docs, start=1):
     print("=" * 80)
 
     print(f"Result {i}")
+
+    print("Book:", doc.metadata.get("book", "Unknown"))
 
     print("Page:", doc.metadata["page"])
 
