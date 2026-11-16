@@ -5,15 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Any
 from src.graph.workflow import app as graph
+from src.graph.nodes import RateLimitExceeded
 
 # Set up logging for FastAPI application
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] (%(name)s) %(message)s")
-logger = logging.getLogger("coffee_rag.api")
+logger = logging.getLogger("tea_rag.api")
 
 # Initialize FastAPI application
 app = FastAPI(
-    title="Coffee Bible RAG API",
-    description="FastAPI interface for the LangGraph-based Coffee Bible RAG Assistant",
+    title="Tea RAG API",
+    description="FastAPI interface for the LangGraph-based Tea RAG Assistant",
     version="1.0.0"
 )
 
@@ -32,7 +33,9 @@ class AskRequest(BaseModel):
     thread_id: str = "default_thread"
 
 class EvidenceItem(BaseModel):
+    book: str = "Unknown"
     page: Any
+    page_end: Any = None  # differs from page when the chunk crosses a page break
     start_line: int
     end_line: int
 
@@ -49,7 +52,7 @@ def read_root():
 @app.post("/ask", response_model=AskResponse)
 async def ask_question(request: AskRequest):
     """
-    Endpoint to ask a question to the Coffee Bible RAG assistant.
+    Endpoint to ask a question to the Tea RAG assistant.
     The request goes through a LangGraph workflow that retrieves relevant chunks,
     grades their relevance, and generates the final answer using LLM.
     """
@@ -69,6 +72,9 @@ async def ask_question(request: AskRequest):
             "answer": result["answer"],
             "evidence": result["evidence"]
         }
+    except RateLimitExceeded as e:
+        logger.warning(f"Rate limited: {e}")
+        raise HTTPException(status_code=429, detail=str(e))
     except Exception as e:
         logger.error(f"Error processing question: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error invoking graph: {str(e)}")

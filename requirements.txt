@@ -3,10 +3,13 @@ langgraph
 langchain-community
 langchain-huggingface
 langchain-ollama
-faiss-cpu
+qdrant-client
+langchain-qdrant
 pymupdf
 sentence-transformers
 python-dotenv
 langchain-groq
 fastapi
 uvicorn
+rapidocr
+onnxruntime

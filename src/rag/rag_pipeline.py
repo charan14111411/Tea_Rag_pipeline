@@ -1,8 +1,8 @@
 from src.retrieval.retriever import get_retriever
 from src.llm.groq_client import get_llm
 from src.llm.prompts import RAG_PROMPT
-retriever = get_retriever()
-llm = get_llm()
+
+
 def ask_question(question: str):
 
     # Load Retriever
@@ -38,7 +38,9 @@ def ask_question(question: str):
 
         evidence.append(
             {
+                "book": doc.metadata.get("book", "Unknown"),
                 "page": doc.metadata.get("page", "Unknown"),
+                "page_end": doc.metadata.get("page_end", doc.metadata.get("page", "Unknown")),
                 "content": doc.page_content
             }
         )   

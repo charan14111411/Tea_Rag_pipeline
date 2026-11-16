@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coffee Bible Assistant</title>
+    <title>Tea Book Assistant</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -192,6 +192,38 @@
 
         .message.user .message-meta {
             justify-content: flex-end;
+        }
+
+        /* Formatted assistant answers */
+        .answer p {
+            margin: 0 0 8px;
+        }
+
+        .answer ul {
+            margin: 4px 0 8px;
+            padding-left: 20px;
+        }
+
+        .answer li {
+            margin: 4px 0;
+        }
+
+        .answer strong {
+            color: var(--green-primary);
+            font-weight: 600;
+        }
+
+        .answer-sources {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border-sage);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .answer-sources span {
+            font-weight: 600;
+            color: var(--text-dark);
         }
 
         /* Evidence Section */
@@ -434,10 +466,10 @@
         <header class="header">
             <div class="header-brand">
                 <div class="header-logo">
-                    <i class="fa-solid fa-mug-hot"></i>
+                    <i class="fa-solid fa-leaf"></i>
                 </div>
                 <div class="header-title">
-                    <h1>Coffee Book Assistant</h1>
+                    <h1>Tea Book Assistant</h1>
                     
                 </div>
             </div>
@@ -457,7 +489,7 @@
         <footer class="chat-input-area">
             <form id="chatForm" onsubmit="sendMessage(event)">
                 <div class="input-wrapper">
-                    <input type="text" id="userInput" placeholder="Ask something about coffee..." autocomplete="off">
+                    <input type="text" id="userInput" placeholder="Ask something about tea..." autocomplete="off">
                     <button type="submit" class="send-btn" id="sendBtn">
                         <i class="fa-solid fa-paper-plane"></i>
                     </button>
@@ -475,7 +507,7 @@
 
         // Trigger welcome message on DOM load
         window.addEventListener('DOMContentLoaded', () => {
-            appendMessage('assistant', 'Hello! I am your Coffee Bible Assistant. Ask me any questions about coffee growing, processing, storage, roasting, or brewing.');
+            appendMessage('assistant', 'Hello! I am your Tea Assistant. Ask me anything about tea varieties, cultivation, processing, history, health, or brewing.');
         });
 
         // Formats current time (e.g. "10:34 AM")
@@ -509,12 +541,20 @@
 
             let evidenceHtml = '';
             if (evidence && evidence.length > 0) {
-                const evidenceItemsHtml = evidence.map((item, index) => `
+                const evidenceItemsHtml = evidence.map((item, index) => {
+                    // A chunk can cross a page break: show "Pages 14-15" and per-page line numbers
+                    const multiPage = item.page_end != null && item.page_end !== item.page;
+                    const pages = multiPage ? `Pages ${item.page}&ndash;${item.page_end}` : `Page ${item.page}`;
+                    const lines = multiPage
+                        ? `Lines: ${item.start_line} (p.${item.page}) &ndash; ${item.end_line} (p.${item.page_end})`
+                        : `Lines: ${item.start_line} - ${item.end_line}`;
+                    return `
                     <div class="evidence-item">
-                        <div class="evidence-badge">Source: Page ${item.page}</div>
-                        <div class="evidence-text">Lines: ${item.start_line} - ${item.end_line}</div>
+                        <div class="evidence-badge">Source: ${item.book || 'Unknown book'} &middot; ${pages}</div>
+                        <div class="evidence-text">${lines}</div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
 
                 evidenceHtml = `
                     <div class="evidence-container">
@@ -531,7 +571,7 @@
 
             messageDiv.innerHTML = `
                 <div class="message-content">
-                    <p>${escapeHtml(text)}</p>
+                    ${sender === 'assistant' ? renderAnswer(text) : `<p>${escapeHtml(text)}</p>`}
                     ${evidenceHtml}
                 </div>
                 <div class="message-meta">
@@ -565,6 +605,40 @@
         }
 
         // HTML escaping helper
+        // Render an assistant answer: paragraphs, "- " bullet lists, **bold**, and a Sources line.
+        // Text is HTML-escaped first, so only these few tags can ever appear.
+        function renderAnswer(text) {
+            const inline = (s) => escapeHtml(s)
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?![*\w])/g, '$1<em>$2</em>');
+            const html = [];
+            let list = [];
+            const flushList = () => {
+                if (list.length) {
+                    html.push(`<ul>${list.map(item => `<li>${inline(item)}</li>`).join('')}</ul>`);
+                    list = [];
+                }
+            };
+
+            for (const rawLine of text.split('\n')) {
+                const line = rawLine.trim();
+                const bullet = line.match(/^(?:[-•*]|\d+[.)])\s+(.*)$/);
+                if (bullet) {
+                    list.push(bullet[1]);
+                    continue;
+                }
+                flushList();
+                if (!line) continue;
+                if (/^sources:/i.test(line)) {
+                    html.push(`<div class="answer-sources"><span>Sources:</span> ${inline(line.replace(/^sources:\s*/i, ''))}</div>`);
+                } else {
+                    html.push(`<p>${inline(line)}</p>`);
+                }
+            }
+            flushList();
+            return `<div class="answer">${html.join('')}</div>`;
+        }
+
         function escapeHtml(text) {
             const map = {
                 '&': '&amp;',
@@ -605,7 +679,14 @@
                 removeTypingIndicator();
 
                 if (!response.ok) {
-                    throw new Error('API request failed');
+                    // Show the server's message when it sends one (e.g. AI usage limit reached)
+                    let detail = null;
+                    try { detail = (await response.json()).detail; } catch (e) {}
+                    if (response.status === 429 && detail) {
+                        appendMessage('assistant', detail);
+                        return;
+                    }
+                    throw new Error(detail || 'API request failed');
                 }
 
                 const data = await response.json();

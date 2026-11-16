@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 def main():
 
     print("=" * 80)
-    print("Coffee Bible RAG Assistant (LangGraph)")
+    print("Tea RAG Assistant (LangGraph)")
     print("Type 'exit' to quit")
     print("=" * 80)
 
@@ -55,7 +55,13 @@ def main():
             ):
 
                 print(
-                    f"\nEvidence {i} | Page {evidence['page']} (Lines {evidence['start_line']} - {evidence['end_line']})"
+                    f"\nEvidence {i} | {evidence.get('book', 'Unknown')} | "
+                    + (
+                        f"Page {evidence['page']} (Lines {evidence['start_line']} - {evidence['end_line']})"
+                        if evidence.get('page_end', evidence['page']) == evidence['page']
+                        else f"Pages {evidence['page']}-{evidence['page_end']} "
+                        f"(Line {evidence['start_line']} on p.{evidence['page']} - line {evidence['end_line']} on p.{evidence['page_end']})"
+                    )
                 )
 
                 print("-" * 80)
