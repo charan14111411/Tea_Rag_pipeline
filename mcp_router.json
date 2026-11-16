@@ -1,0 +1,15 @@
+{
+  "listen_port": 8080,
+  "routes": [
+    {
+      "name": "tea",
+      "env_file": "C:/Users/NIKHIL K/Desktop/tea_book_mcp/Tea_Rag_pipeline/.env",
+      "target": "http://127.0.0.1:8002"
+    },
+    {
+      "name": "coffee",
+      "env_file": "C:/Users/NIKHIL K/Desktop/Rag/Rag/.env",
+      "target": "http://127.0.0.1:8001"
+    }
+  ]
+}

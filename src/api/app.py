@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,12 +12,30 @@ from src.graph.nodes import RateLimitExceeded
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] (%(name)s) %(message)s")
 logger = logging.getLogger("tea_rag.api")
 
+# MCP server (tools: ask_tea_expert, search_tea_books, list_tea_books), served at /mcp
+from mcp_server import mcp  # noqa: E402
+
+mcp_http_app = mcp.streamable_http_app(streamable_http_path="/mcp")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # The MCP session manager must run for the app's lifetime; a mounted
+    # sub-app's own lifespan is not started by FastAPI, so run it here.
+    async with mcp.session_manager.run():
+        yield
+
+
 # Initialize FastAPI application
 app = FastAPI(
     title="Tea RAG API",
     description="FastAPI interface for the LangGraph-based Tea RAG Assistant",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
+
+# Add the MCP endpoint as a plain route (not a mount) so the URL is exactly /mcp
+app.router.routes.extend(mcp_http_app.routes)
 
 # Enable CORS for development testing
 app.add_middleware(
